@@ -55,14 +55,19 @@ class WhatsAppSession:
         return {"exploit": exploit, "success": True, "target": phone_number}
 
     def check_account_status(self, phone_number):
-        if self._banned:
+        status = getattr(self, '_status', 'active')
+        banned = getattr(self, '_banned', False)
+        if banned or status in ('temporarily_banned', 'permanently_banned'):
             return {
-                "status": "permanently_banned", "messaging_allowed": False,
+                "status": status,
+                "messaging_allowed": False,
                 "profile_visible": False
             }
         return {
-            "status": self._status, "messaging_allowed": True,
-            "profile_visible": True, "banned": False
+            "status": status,
+            "messaging_allowed": True,
+            "profile_visible": True,
+            "banned": False
         }
 
     # ---- Status-check helpers (used by StatusDetector) ----

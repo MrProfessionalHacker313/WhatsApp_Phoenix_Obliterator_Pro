@@ -7,6 +7,7 @@ import json
 import time
 import hashlib
 import base64
+from pathlib import Path
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -22,6 +23,7 @@ class AntiForensicLayer:
         self.deployed_layers = []
         self.machine_id = self._generate_machine_id()
         self.encryption_key = self._generate_encryption_key()
+        self._base_dir = Path(__file__).resolve().parent
         
     def deploy(self):
         """Deploy all anti-forensic layers"""
@@ -40,8 +42,8 @@ class AntiForensicLayer:
         self._layer_10_behavioral_mimicry()
         
         self.stealth_level = 100
-        print(f"[✓] All {len(self.deployed_layers)} anti-forensic layers active")
-        print(f"[✓] Stealth Level: {self.stealth_level}%")
+        print(f"[OK] All {len(self.deployed_layers)} anti-forensic layers active")
+        print(f"[OK] Stealth Level: {self.stealth_level}%")
         
         return True
     
@@ -71,16 +73,16 @@ class AntiForensicLayer:
     def _layer_4_file_system_stealth(self):
         """Hide all tool files using ADS (NTFS) or dotfiles (Linux)"""
         
-        # Hide files
+        base = self._base_dir
         for f in ['phoenix_operations.log', 'knowledge_base.json']:
-            if os.path.exists(f):
+            target = base / f
+            if target.exists():
                 if platform.system() == 'Windows':
-                    # Hide file
-                    subprocess.run(['attrib', '+h', f], capture_output=True)
+                    subprocess.run(['attrib', '+h', str(target)], capture_output=True)
                 else:
-                    # Rename to hidden file
-                    if not f.startswith('.'):
-                        os.rename(f, f'.{f}')
+                    hidden = base / f'.{f}'
+                    if not target.name.startswith('.'):
+                        target.rename(hidden)
         
         self.deployed_layers.append('filesystem_stealth')
     
@@ -127,8 +129,8 @@ class AntiForensicLayer:
     def _layer_9_log_wiping(self):
         """Auto-wipe logs after each operation"""
         
-        # Set log retention to 0 operations
-        with open('.log_config', 'w') as f:
+        log_config = self._base_dir / '.log_config'
+        with open(log_config, 'w', encoding='utf-8') as f:
             json.dump({'retention': 0, 'auto_wipe': True}, f)
         
         self.deployed_layers.append('log_wiping')

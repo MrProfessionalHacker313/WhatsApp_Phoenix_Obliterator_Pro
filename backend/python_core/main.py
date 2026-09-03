@@ -23,6 +23,12 @@ import os
 import time
 import re
 
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # ---- sys.path so we can import the core engine -----------------------------
 sys.path.insert(0, os.path.dirname(__file__))
 

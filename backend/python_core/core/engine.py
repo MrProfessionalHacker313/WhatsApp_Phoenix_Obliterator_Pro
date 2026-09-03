@@ -15,6 +15,7 @@ from .detector import StatusDetector
 from .anti_forensic import AntiForensicLayer
 from utils.proxy_rotator import ProxyRotator
 from utils.session_pool import SessionPool
+from utils.temp_ban_manager import TempBanManager
 
 init(autoreset=True)
 console = Console()
@@ -33,6 +34,7 @@ class PhoenixEngine:
         self.anti_forensic = AntiForensicLayer()
         self.proxy_rotator = ProxyRotator()
         self.session_pool = SessionPool()
+        self.temp_ban_manager = TempBanManager()
         self.running = True
         self.stats = {
             "total_operations": 0,
@@ -66,7 +68,7 @@ class PhoenixEngine:
         operation_id = f"OP_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{hash(phone_number) % 10000}"
         
         console.print(f"\n{Fore.CYAN}{'='*60}")
-        console.print(f"{Fore.YELLOW}🔥 PHOENIX ENGINE - OPERATION INITIATED")
+        console.print(f"{Fore.YELLOW}>> PHOENIX ENGINE - OPERATION INITIATED")
         console.print(f"{Fore.CYAN}{'='*60}")
         console.print(f"{Fore.WHITE}Operation ID: {operation_id}")
         console.print(f"{Fore.WHITE}Target: {phone_number}")
@@ -78,17 +80,34 @@ class PhoenixEngine:
             analysis = ai_router.analyze_target(phone_number, self._extract_country(phone_number))
             time.sleep(1)
         
-        console.print(f"{Fore.GREEN}[✓] Target analyzed")
+        console.print(f"{Fore.GREEN}[OK] Target analyzed")
         console.print(f"{Fore.CYAN}    Strategy: {analysis['strategy']['name']}")
         console.print(f"{Fore.CYAN}    Confidence: {analysis['confidence']*100:.1f}%")
         console.print(f"{Fore.CYAN}    Est. Time: {analysis['estimated_time']}s")
-        
+
+        if action in ("temporary_ban", "temporary_unban"):
+            ban_check = self.temp_ban_manager.is_temp_banned(phone_number)
+            if ban_check.get("banned"):
+                console.print(f"{Fore.YELLOW}[!] Target already has an active temp ban (expires in {ban_check.get('remaining_seconds', 0)}s)")
+                if action == "temporary_ban":
+                    return {
+                        "operation_id": operation_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "target": phone_number,
+                        "action": action,
+                        "success": False,
+                        "details": None,
+                        "analysis": analysis,
+                        "duration_seconds": round(time.time() - start_time, 2),
+                        "error": "Target already has an active temporary ban"
+                    }
+
         # Step 2: Anti-Forensic Preparation
         with console.status(f"{Fore.MAGENTA}[SECURITY] Deploying anti-forensic layer..."):
             self.anti_forensic.deploy()
             time.sleep(2)
         
-        console.print(f"{Fore.GREEN}[✓] Anti-forensic layer active")
+        console.print(f"{Fore.GREEN}[OK] Anti-forensic layer active")
         
         # Step 3-6: execute in a guarded block so any error returns a clean
         # result and the menu keeps running (the tool never exits on its own).
@@ -98,7 +117,7 @@ class PhoenixEngine:
                 session = self.session_pool.get_session(proxy)
                 time.sleep(1)
 
-            console.print(f"{Fore.GREEN}[✓] Secure connection established")
+            console.print(f"{Fore.GREEN}[OK] Secure connection established")
             console.print(f"{Fore.CYAN}    Proxy: {proxy['ip']}:{proxy['port']} ({proxy['country']})")
 
             # Step 4: Execute Action
@@ -138,7 +157,7 @@ class PhoenixEngine:
 
             # Step 5: Verify Result
             if result and result.get('success'):
-                console.print(f"\n{Fore.GREEN}{'✓'} OPERATION SUCCESSFUL!")
+                console.print(f"\n{Fore.GREEN}[SUCCESS] OPERATION SUCCESSFUL!")
                 console.print(f"{Fore.GREEN}    Action: {action.upper()}")
                 console.print(f"{Fore.GREEN}    Target: {phone_number}")
                 console.print(f"{Fore.GREEN}    Time: {time.time() - start_time:.1f}s")
@@ -154,7 +173,7 @@ class PhoenixEngine:
 
                 self.stats['successful'] += 1
             else:
-                console.print(f"\n{Fore.RED}{'✗'} OPERATION FAILED")
+                console.print(f"\n{Fore.RED}[FAILED] OPERATION FAILED")
                 error_msg = result.get('error', 'Unknown error') if result else 'No result returned'
                 console.print(f"{Fore.RED}    Error: {error_msg}")
 
@@ -186,7 +205,7 @@ class PhoenixEngine:
             return report
 
         except Exception as e:
-            console.print(f"\n{Fore.RED}{'✗'} OPERATION ERROR")
+            console.print(f"\n{Fore.RED}[ERROR] OPERATION ERROR")
             console.print(f"{Fore.RED}    {e}")
             self.stats['failed'] += 1
             self.stats['total_operations'] += 1

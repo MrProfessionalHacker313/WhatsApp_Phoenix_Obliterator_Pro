@@ -2,6 +2,7 @@ import json
 import random
 import time
 from datetime import datetime
+from pathlib import Path
 import numpy as np
 
 class AIRouter:
@@ -14,14 +15,19 @@ class AIRouter:
         self.learning_db = {}
         self.success_patterns = []
         self.failure_patterns = []
+        self._base_dir = Path(__file__).resolve().parent.parent
         self.load_knowledge()
+    
+    def _kb_path(self):
+        return self._base_dir / 'knowledge_base.json'
     
     def load_knowledge(self):
         """Load previous learnings"""
         try:
-            with open('knowledge_base.json', 'r') as f:
+            kb_file = self._kb_path()
+            with open(kb_file, 'r', encoding='utf-8') as f:
                 self.learning_db = json.load(f)
-        except:
+        except Exception:
             self.learning_db = {
                 "success_rate": 0.98,
                 "total_operations": 0,
@@ -140,7 +146,8 @@ class AIRouter:
             self.failure_patterns.append(operation_data)
         
         # Save learning
-        with open('knowledge_base.json', 'w') as f:
+        kb_file = self._kb_path()
+        with open(kb_file, 'w', encoding='utf-8') as f:
             json.dump(self.learning_db, f, indent=2)
         
         return True

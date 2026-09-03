@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from colorama import Fore
@@ -9,14 +10,14 @@ from .ban_validator import BanValidator
 
 class TempBanManager:
     """
-    Temporary ban lifecycle manager.
+    Thread-safe temporary ban lifecycle manager.
     Tracks temp bans in evidence/temp_bans.json, auto-expires stale entries,
     and surfaces active / expired records.
     """
 
     DEFAULT_EVIDENCE_DIR = Path(__file__).resolve().parents[2] / "evidence"
     BAN_LOG_FILE = "temp_bans.json"
-    CLEANUP_INTERVAL = 100
+    CLEANUP_INTERVAL = 50
 
     def __init__(self, evidence_dir=None):
         self.evidence_dir = Path(evidence_dir) if evidence_dir else self.DEFAULT_EVIDENCE_DIR
@@ -25,6 +26,7 @@ class TempBanManager:
         self._records = self._load_records()
         self._cleanup_counter = 0
         self.validator = BanValidator(evidence_dir=self.evidence_dir)
+        self._lock = threading.Lock()
 
     def _load_records(self):
         if self.ban_file.exists():
@@ -33,106 +35,115 @@ class TempBanManager:
         return {"temp_bans": {}}
 
     def _save_records(self):
-        with open(self.ban_file, "w", encoding="utf-8") as f:
+        tmp_file = self.ban_file.with_suffix(".tmp")
+        with open(tmp_file, "w", encoding="utf-8") as f:
             json.dump(self._records, f, indent=2, ensure_ascii=False)
+        tmp_file.replace(self.ban_file)
 
     def apply_temp_ban(self, phone_number, duration_hours, reason="spam_activity"):
-        validation = self.validator.validate(phone_number, ban_type="temporary")
-        if not validation["valid"]:
-            return {"success": False, "error": "Validation failed", "reasons": validation["reasons"]}
+        with self._lock:
+            validation = self.validator.validate(phone_number, ban_type="temporary")
+            if not validation["valid"]:
+                return {"success": False, "error": "Validation failed", "reasons": validation["reasons"]}
 
-        phone_number = self.validator._normalize(phone_number)
-        now = datetime.utcnow()
-        expires_at = (now + timedelta(hours=duration_hours)).isoformat()
+            phone_number = self.validator._normalize(phone_number)
+            now = datetime.utcnow()
+            expires_at = (now + timedelta(hours=duration_hours)).isoformat()
 
-        record = {
-            "phone_number": phone_number,
-            "reason": reason,
-            "applied_at": now.isoformat(),
-            "expires_at": expires_at,
-            "duration_hours": duration_hours,
-            "status": "active",
-        }
+            record = {
+                "phone_number": phone_number,
+                "reason": reason,
+                "applied_at": now.isoformat(),
+                "expires_at": expires_at,
+                "duration_hours": duration_hours,
+                "status": "active",
+            }
 
-        self._records["temp_bans"][phone_number] = record
-        self._save_records()
+            self._records["temp_bans"][phone_number] = record
+            self._save_records()
 
-        self.validator.register_ban_attempt(phone_number, "temporary", success=True)
+            self.validator.register_ban_attempt(phone_number, "temporary", success=True)
 
-        print(f"{Fore.GREEN}[TEMP_BAN] Applied {duration_hours}h temp ban on {phone_number}")
-        return {"success": True, "record": record}
+            print(f"{Fore.GREEN}[TEMP_BAN] Applied {duration_hours}h temp ban on {phone_number}")
+            return {"success": True, "record": record}
 
     def lift_temp_ban(self, phone_number):
-        phone_number = self.validator._normalize(phone_number)
-        record = self._records.get("temp_bans", {}).get(phone_number)
+        with self._lock:
+            phone_number = self.validator._normalize(phone_number)
+            record = self._records.get("temp_bans", {}).get(phone_number)
 
-        if not record:
-            return {"success": False, "error": "No active temp ban found"}
+            if not record:
+                return {"success": False, "error": "No temp ban record found"}
 
-        if record.get("status") == "expired":
-            return {"success": False, "error": "Ban already expired"}
+            if record.get("status") == "lifted":
+                return {"success": False, "error": "Ban already lifted"}
 
-        record["status"] = "lifted"
-        record["lifted_at"] = datetime.utcnow().isoformat()
-        self._save_records()
+            if record.get("status") == "expired":
+                return {"success": False, "error": "Ban already expired"}
 
-        print(f"{Fore.YELLOW}[TEMP_BAN] Lifted temp ban on {phone_number}")
-        return {"success": True, "record": record}
+            record["status"] = "lifted"
+            record["lifted_at"] = datetime.utcnow().isoformat()
+            self._save_records()
+
+            print(f"{Fore.YELLOW}[TEMP_BAN] Lifted temp ban on {phone_number}")
+            return {"success": True, "record": record}
 
     def is_temp_banned(self, phone_number):
-        self._maybe_cleanup()
-        phone_number = self.validator._normalize(phone_number)
-        record = self._records.get("temp_bans", {}).get(phone_number)
+        with self._lock:
+            phone_number = self.validator._normalize(phone_number)
+            record = self._records.get("temp_bans", {}).get(phone_number)
 
-        if not record:
-            return {"banned": False}
+            if not record:
+                return {"banned": False, "reason": "no_record"}
 
-        status = record.get("status")
-        if status == "lifted":
-            return {"banned": False, "reason": "lifted"}
+            status = record.get("status")
+            if status == "lifted":
+                return {"banned": False, "reason": "lifted"}
 
-        if status == "expired":
-            return {"banned": False, "reason": "expired"}
+            if status == "expired":
+                return {"banned": False, "reason": "expired"}
 
-        expires_at = datetime.fromisoformat(record["expires_at"])
-        if datetime.utcnow() >= expires_at:
-            record["status"] = "expired"
-            record["expired_at"] = datetime.utcnow().isoformat()
-            self._save_records()
-            return {"banned": False, "reason": "expired"}
-
-        remaining = expires_at - datetime.utcnow()
-        return {
-            "banned": True,
-            "reason": record.get("reason"),
-            "expires_at": record["expires_at"],
-            "remaining_seconds": int(remaining.total_seconds()),
-            "duration_hours": record.get("duration_hours"),
-        }
-
-    def get_active_temp_bans(self):
-        self._maybe_cleanup()
-        active = []
-        for phone_number, record in self._records.get("temp_bans", {}).items():
-            if record.get("status") != "active":
-                continue
             expires_at = datetime.fromisoformat(record["expires_at"])
             if datetime.utcnow() >= expires_at:
                 record["status"] = "expired"
                 record["expired_at"] = datetime.utcnow().isoformat()
-                continue
-            active.append(record)
-        if any(r.get("status") == "expired" for r in self._records.get("temp_bans", {}).values()):
-            self._save_records()
-        return active
+                self._save_records()
+                return {"banned": False, "reason": "expired"}
+
+            remaining = expires_at - datetime.utcnow()
+            return {
+                "banned": True,
+                "reason": record.get("reason"),
+                "expires_at": record["expires_at"],
+                "remaining_seconds": int(remaining.total_seconds()),
+                "duration_hours": record.get("duration_hours"),
+            }
+
+    def get_active_temp_bans(self):
+        with self._lock:
+            active = []
+            for phone_number, record in list(self._records.get("temp_bans", {}).items()):
+                status = record.get("status")
+                if status != "active":
+                    continue
+                expires_at = datetime.fromisoformat(record["expires_at"])
+                if datetime.utcnow() >= expires_at:
+                    record["status"] = "expired"
+                    record["expired_at"] = datetime.utcnow().isoformat()
+                    continue
+                active.append(record)
+            if any(r.get("status") == "expired" for r in self._records.get("temp_bans", {}).values()):
+                self._save_records()
+            return active
 
     def get_history(self, phone_number=None):
-        self._maybe_cleanup()
-        bans = self._records.get("temp_bans", {})
-        if phone_number:
-            phone_number = self.validator._normalize(phone_number)
-            return bans.get(phone_number)
-        return list(bans.values())
+        with self._lock:
+            bans = self._records.get("temp_bans", {})
+            if phone_number:
+                phone_number = self.validator._normalize(phone_number)
+                record = bans.get(phone_number)
+                return [record] if record else []
+            return list(bans.values())
 
     def _maybe_cleanup(self):
         self._cleanup_counter += 1
