@@ -1,0 +1,22 @@
+{
+  "pay_demo_123": {
+    "payment_id": "pay_demo_123",
+    "ref": "PHX-GJXC-QLKA",
+    "affiliate_id": "aff_781d2e75c1df4a18",
+    "amount_cents": 9900,
+    "commission_cents": 990,
+    "plan": "basic",
+    "billing_reason": "purchase",
+    "credited_at": "2026-09-02T07:29:30.513855+00:00"
+  },
+  "pay_001": {
+    "payment_id": "pay_001",
+    "ref": "PHX-UNUY-ZAKG",
+    "affiliate_id": "aff_376505e91cef4467",
+    "amount_cents": 9900,
+    "commission_cents": 990,
+    "plan": "basic",
+    "billing_reason": "purchase",
+    "credited_at": "2026-09-02T07:32:52.193518+00:00"
+  }
+}

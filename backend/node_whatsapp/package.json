@@ -1,0 +1,12 @@
+{
+  "name": "phoenix-whatsapp-bridge",
+  "version": "1.0.0",
+  "description": "Authorized WhatsApp integration bridge for agency workflows",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

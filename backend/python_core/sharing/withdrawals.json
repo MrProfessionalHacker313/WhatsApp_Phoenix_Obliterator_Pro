@@ -1,0 +1,26 @@
+{
+  "wd_95dea992986445aa": {
+    "id": "wd_95dea992986445aa",
+    "affiliate_id": "aff_781d2e75c1df4a18",
+    "amount_cents": 500,
+    "fee_cents": 0,
+    "net_cents": 500,
+    "status": "paid",
+    "payout_id": null,
+    "requested_at": "2026-09-02T07:30:26.228597+00:00",
+    "processed_at": "2026-09-02T07:30:26.633667+00:00",
+    "sandbox": true
+  },
+  "wd_71be1d1a91144554": {
+    "id": "wd_71be1d1a91144554",
+    "affiliate_id": "aff_376505e91cef4467",
+    "amount_cents": 500,
+    "fee_cents": 0,
+    "net_cents": 500,
+    "status": "paid",
+    "payout_id": null,
+    "requested_at": "2026-09-02T07:32:52.197130+00:00",
+    "processed_at": "2026-09-02T07:32:52.452320+00:00",
+    "sandbox": true
+  }
+}

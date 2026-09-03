@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phoenix Eagle Ultra Pro — {{ ref }}</title>
+<style>
+  :root {
+    --gold: #FFD700;
+    --fire: #8B0000;
+    --steel: #4682B4;
+    --bg: #0b0f14;
+    --card: #141a22;
+    --text: #ffffff;
+    --dim: #7a8699;
+    --border: #22303f;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 500px at 50% -100px, #1d2a3a 0%, var(--bg) 60%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 60px;
+  }
+  header { text-align:center; margin-bottom:6px; }
+  .eagle { font-size:36px; filter:drop-shadow(0 0 12px rgba(255,215,0,.4)); }
+  h1 { color:var(--gold); font-size:24px; letter-spacing:2px; margin:4px 0; }
+  .tag { color:var(--dim); font-size:13px; letter-spacing:3px; }
+  .divider {
+    width:260px; height:2px; margin:16px auto;
+    background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  /* Branded share card (spec layout) */
+  .share-card {
+    background:var(--card); border:2px solid var(--gold); border-radius:14px;
+    padding:20px 22px; max-width:360px; width:100%; margin:0 auto 26px;
+    font-family:"Courier New",monospace; text-align:left; line-height:1.6;
+  }
+  .share-card .row { display:flex; justify-content:space-between; gap:6px; }
+  .share-card .label { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:1px; }
+  .share-card .value { color:var(--text); font-size:14px; word-break:break-all; }
+  .gold { color:var(--gold); }
+  .pill { display:inline-block; background:var(--fire); color:#fff;
+    padding:2px 8px; border-radius:6px; font-size:12px; font-weight:800; }
+  .actions { text-align:center; margin-top:22px; }
+  .btn { display:inline-block; padding:12px 22px; margin:6px; border:none;
+    border-radius:8px; font-size:15px; font-weight:800; letter-spacing:1px;
+    cursor:pointer; transition:filter .15s ease, transform .12s ease; }
+  .btn.download { background:var(--gold); color:#1b1b1b; }
+  .btn.buy { background:var(--steel); color:#fff; }
+  .btn:hover { filter:brightness(1.1); transform:translateY(-2px); }
+  .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text); }
+  .plans { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin-top:22px; }
+  .plan { background:var(--card); border:1px solid var(--border); border-radius:14px;
+    width:250px; padding:22px; text-align:center; position:relative; }
+  .plan .tier { color:var(--steel); font-size:12px; letter-spacing:3px; font-weight:700; }
+  .plan .price { font-size:30px; font-weight:800; color:var(--gold); margin:8px 0; }
+  .perks { list-style:none; margin:14px 0; text-align:left; }
+  .perks li { font-size:12.5px; padding:5px 0; color:#c3cdd9; }
+  .perks li::before { content:"🦅 "; color:var(--gold); }
+  footer { color:var(--dim); font-size:12px; margin-top:28px; text-align:center; }
+  .notfound { color:var(--fire); font-weight:800; }
+  .msg { color:#f8d7da; background:rgba(139,0,0,.15); border:1px solid var(--fire);
+    border-radius:8px; padding:10px; max-width:420px; margin:16px auto; }
+</style>
+</head>
+<body>
+<header>
+  <div class="eagle">🦅</div>
+  <h1>PHOENIX EAGLE ULTRA PRO</h1>
+  <div class="tag">World's #1 WhatsApp Engine</div>
+</header>
+<div class="divider"></div>
+{% if not not_found %}
+  <!-- Branded share card (spec layout) -->
+  <div class="share-card">
+    <div class="row"><span class="label">Engine</span><span class="value gold">🦅 {{ product_name }}</span></div>
+    <div class="row"><span class="label">Tagline</span><span class="value">{{ tagline }}</span></div>
+    <div class="row"><span class="label">License</span><span class="value">🔗 {{ ref }}</span></div>
+    <div class="row"><span class="label">Download</span><span class="value"><a href="{{ download_url }}" style="color:var(--gold);text-decoration:none;">📥 Direct Link</a></span></div>
+    <div class="row"><span class="label">Price</span><span class="value">💰 {{ price_usd }} — {{ plan_display }}</span></div>
+    <div class="row"><span class="label">License key</span><span class="value" style="font-size:11px;word-break:break-all;color:var(--dim);">{{ license_key }}</span></div>
+    {% if referrer %}<div class="row"><span class="label">Referred by</span><span class="value pill">AFFILIATE</span></div>{% endif %}
+  </div>
+
+  <div class="actions">
+    {% if download_url and download_url != '#' %}
+      <a href="{{ download_url }}" class="btn download">📥 Download Now</a>
+    {% endif %}
+    <a href="/buy/{{ ref }}" class="btn buy">💳 Buy License (10% referral credit)</a>
+    <a href="{{ referral_url }}" class="btn-ghost" onclick="navigator.clipboard.writeText(location.href);return false;">🔗 Copy Referral Link</a>
+  </div>
+
+  {% if plans %}
+  <h3 style="color:var(--gold);margin-top:26px;">Choose Your Plan</h3>
+  <div class="plans">
+    {% for p in plans %}
+    <div class="plan">
+      <div class="tier">{{ p.key|upper }}</div>
+      <div class="price">{{ p.price_usd }}</div>
+      <ul class="perks">
+        {% for perk in p.perks %}<li>{{ perk }}</li>{% endfor %}
+      </ul>
+      <a href="/buy/{{ ref }}?plan={{ p.key }}" class="btn btn-ghost">Select</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if share_channels %}
+  <div style="margin-top:22px;max-width:480px;text-align:left;color:var(--dim);font-size:13px;">
+    <div style="color:var(--gold);margin-bottom:8px;">📢 Share this link on:</div>
+    {% for ch, msg in share_channels.items() %}
+    <div style="margin-bottom:6px;">
+      <strong>{{ ch|capitalize }}:</strong>
+      <pre style="background:#0b0f14;border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;word-break:break-all;color:#c3cdd9;">{{ msg }}</pre>
+            <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(`{{ msg|e('js') }}`);return false;" style="font-size:12px;padding:4px 10px;">Copy</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% else %}
+  <div class="msg notfound">
+    ⚠️  This share link (ref: {{ ref }}) does not exist or is invalid.
+  </div>
+{% endif %}
+<footer>
+  © Phoenix Security Labs 🦅 — Share links are permanent and never expire.<br>
+  Referrers earn 10% recurring commission on every purchase through their link.
+</footer>
+</body>
+</html>

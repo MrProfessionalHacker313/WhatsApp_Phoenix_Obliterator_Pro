@@ -1,0 +1,28 @@
+{
+  "pay_demo_123": {
+    "id": "comm_e78116d20d034bf7",
+    "payment_id": "pay_demo_123",
+    "affiliate_id": "aff_781d2e75c1df4a18",
+    "ref_code": "PHX-GJXC-QLKA",
+    "amount_cents": 9900,
+    "commission_cents": 990,
+    "rate": 0.1,
+    "plan": "basic",
+    "billing_reason": "purchase",
+    "status": "pending",
+    "credited_at": "2026-09-02T07:29:30.514567+00:00"
+  },
+  "pay_001": {
+    "id": "comm_a8251592286b4dff",
+    "payment_id": "pay_001",
+    "affiliate_id": "aff_376505e91cef4467",
+    "ref_code": "PHX-UNUY-ZAKG",
+    "amount_cents": 9900,
+    "commission_cents": 990,
+    "rate": 0.1,
+    "plan": "basic",
+    "billing_reason": "purchase",
+    "status": "pending",
+    "credited_at": "2026-09-02T07:32:52.194483+00:00"
+  }
+}

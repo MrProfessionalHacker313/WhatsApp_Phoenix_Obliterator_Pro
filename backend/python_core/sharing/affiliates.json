@@ -1,0 +1,22 @@
+{
+  "aff_781d2e75c1df4a18": {
+    "id": "aff_781d2e75c1df4a18",
+    "name": "Phoenix Partner",
+    "email": "partner@example.com",
+    "stripe_connected_account": "acct_demo_stripe",
+    "payout_method": "stripe_transfer",
+    "balance_cents": 490,
+    "created": "2026-09-02T07:28:49.684476+00:00",
+    "lifetime_earned_cents": 490
+  },
+  "aff_376505e91cef4467": {
+    "id": "aff_376505e91cef4467",
+    "name": "Test Partner",
+    "email": "test@example.com",
+    "stripe_connected_account": "acct_test123",
+    "payout_method": "stripe_transfer",
+    "balance_cents": 490,
+    "created": "2026-09-02T07:32:52.188456+00:00",
+    "lifetime_earned_cents": 490
+  }
+}
